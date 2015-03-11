@@ -235,14 +235,20 @@ module RSpec::Puppet
         ref.is_a?(Puppet::Resource) ? ref : @catalogue.resource(ref)
       end
 
+      def canonize_resource(resource)
+        resource_from_ref(resource_ref(resource))
+      end
+
+      def canonize_resource_ref(ref)
+        resource_ref(resource_from_ref(ref))
+      end
+
       def relationship_refs(resource, type)
-        # Canonize resource
-        resource = resource_from_ref(resource.to_ref)
+        resource = canonize_resource(resource)
         results = []
         Array[resource[type]].flatten.compact.each do |r|
-          res = resource_from_ref(r)
-          results << resource_ref(res)
-          results << relationship_refs(res, type)
+          results << canonize_resource_ref(r)
+          results << relationship_refs(r, type)
         end
 
         # Add autorequires if any
@@ -251,7 +257,7 @@ module RSpec::Puppet
             Array(resource.instance_eval(&b)).each do |dep|
               res = "#{t.capitalize}[#{dep}]"
               results << res
-              results << relationship_refs(resource_from_ref(res), type)
+              results << relationship_refs(res, type)
             end
           end
         end
